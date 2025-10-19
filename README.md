@@ -30,7 +30,9 @@ conda install swig
 ```python
 conda install gymnasium[box2d]
 ```
-After creating `train_dqn.py`, press `ctrl + P` and select ">Python: Select Interpreter". Select the `gymenv` environment we created. ![Select the `gymenv` environment](image.png)
+After creating `train_dqn.py`, press `ctrl + P` and select ">Python: Select Interpreter". Select the `gymenv` environment we created.
+
+![Select the `gymenv` environment](image.png)
 
 Next, open the terminal (`ctrl + ~`) - if your default terminal is `Windows Powershell`, then press `ctrl + P` and select ">Terminal: Select Default Profile". Select `Command Prompt`. Delete your powershell terminal, and open a new terminal.
 -> Our `gymenv` environment will not launch in Windows Powershell
