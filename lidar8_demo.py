@@ -24,6 +24,10 @@ RAY_COLOR = (120, 200, 255)
 CAR_COLOR = (255, 90, 90)
 TEXT_COLOR = (230, 230, 230)
 
+# Car dimensions (for hitbox)
+CAR_WIDTH = 40
+CAR_HEIGHT = 24
+
 # LiDAR parameters
 R_MAX = 100.0  # max sensing range in pixels
 ROOT2 = math.sqrt(2.0)
@@ -91,6 +95,18 @@ def lidar8(p: Vec2, walls: List[Segment], r_max: float = R_MAX) -> np.ndarray:
     dists = [cast_ray(p, (float(d[0]), float(d[1])), walls, r_max) for d in DIRS_8]
     return (np.array(dists, dtype=np.float32) / r_max).clip(0.0, 1.0)
 
+
+def check_wall_collision(pos: Vec2, walls: List[Segment]) -> bool:
+    """Check if the car's hitbox collides with any wall."""
+    car_rect = get_car_hitbox(pos)
+    
+    # Check each wall segment for collision with the car rectangle
+    for (a, b) in walls:
+        # Check if line segment intersects with rectangle
+        if car_rect.clipline(a, b):
+            return True
+    return False
+
 # ----------------------------
 # Drawing helpers
 # ----------------------------
@@ -100,8 +116,49 @@ def draw_walls(screen: pygame.Surface, walls: List[Segment]):
         pygame.draw.line(screen, WALL_COLOR, (int(a[0]), int(a[1])), (int(b[0]), int(b[1])), 2)
 
 
-def draw_car(screen: pygame.Surface, pos: Vec2):
-    pygame.draw.circle(screen, CAR_COLOR, (int(pos[0]), int(pos[1])), 6)
+def draw_car(screen: pygame.Surface, pos: Vec2, car_image: Optional[pygame.Surface] = None, angle: float = 0, is_colliding: bool = False):
+    """
+    Draw the car using an image if provided, otherwise draw a rectangle.
+    
+    Args:
+        screen: Pygame surface to draw on
+        pos: Center position of the car (x, y)
+        car_image: Optional car sprite image
+        angle: Rotation angle in degrees (0 = facing right)
+        is_colliding: If True, inverts the colors
+    """
+    if car_image is not None:
+        rotated_image = pygame.transform.rotate(car_image, -angle)
+        
+        # Invert colors if colliding
+        if is_colliding:
+            # Create inverted version of the image
+            inverted = rotated_image.copy()
+            pixels = pygame.surfarray.array3d(inverted)
+            # Invert RGB values
+            pixels[:] = 255 - pixels
+            inverted = pygame.surfarray.make_surface(pixels)
+            # Preserve alpha channel
+            inverted.set_colorkey(rotated_image.get_colorkey())
+            if rotated_image.get_alpha() is not None:
+                inverted.set_alpha(rotated_image.get_alpha())
+            rotated_image = inverted
+        
+        rect = rotated_image.get_rect(center=(int(pos[0]), int(pos[1])))
+        screen.blit(rotated_image, rect)
+        
+    else:
+        rect = pygame.Rect(int(pos[0] - CAR_WIDTH/2), int(pos[1] - CAR_HEIGHT/2), CAR_WIDTH, CAR_HEIGHT)
+        # Invert color if colliding
+        color = CAR_COLOR
+        if is_colliding:
+            color = (255 - CAR_COLOR[0], 255 - CAR_COLOR[1], 255 - CAR_COLOR[2])
+        pygame.draw.rect(screen, color, rect, border_radius=4)
+
+
+def get_car_hitbox(pos: Vec2) -> pygame.Rect:
+    """Get the rectangular hitbox for collision detection."""
+    return pygame.Rect(int(pos[0] - CAR_WIDTH/2), int(pos[1] - CAR_HEIGHT/2), CAR_WIDTH, CAR_HEIGHT)
 
 
 def draw_rays(screen: pygame.Surface, p: Vec2, norm_dists: np.ndarray):
@@ -119,10 +176,12 @@ def draw_rays(screen: pygame.Surface, p: Vec2, norm_dists: np.ndarray):
 
 def draw_readout(screen: pygame.Surface, font: pygame.font.Font, norm_dists: np.ndarray):
     labels = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
-    lines = [f"{labels[i]}: {norm_dists[i]:.3f}" for i in range(8)]
-    text = "  |  ".join(lines)
+    lines = [f"{labels[i]}: {norm_dists[i]:.2f}" for i in range(8)]
+    text = " | ".join(lines)
     surf = font.render(text, True, TEXT_COLOR)
-    screen.blit(surf, (MARGIN, HEIGHT - MARGIN + 8 - 24))
+    # Center the text horizontally
+    text_x = (WIDTH - surf.get_width()) // 2
+    screen.blit(surf, (text_x, HEIGHT - MARGIN + 8 - 24))
 
 # ----------------------------
 # Main App
@@ -133,12 +192,27 @@ def main():
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("LiDAR-8 Demo — Milestone 1")
     clock = pygame.time.Clock()
-    font = pygame.font.SysFont("consolas", 18)
+    font = pygame.font.SysFont("consolas", 14)  # Smaller font size
 
     walls = square_track(WIDTH, HEIGHT, MARGIN)
 
+    # Load car image (optional - set to None to use rectangle fallback)
+    car_image = "/Car.png"
+    try:
+        # Try to load car.png from the same directory
+        # Replace 'car.png' with your actual image filename
+        original_car_image = pygame.image.load('car.png').convert_alpha()
+        # Scale the image to match hitbox dimensions
+        car_image = pygame.transform.scale(original_car_image, (CAR_WIDTH, CAR_HEIGHT))
+    except FileNotFoundError:
+        print("car.png not found - using rectangle fallback")
+    except Exception as e:
+        print(f"Error loading car image: {e} - using rectangle fallback")
+
     pos = [WIDTH * 0.25, HEIGHT * 0.35]
     speed = 180.0
+    angle = 0  # Car rotation angle
+    velocity = [0.0, 0.0]  # Track velocity for rotation
 
     running = True
     accum_dt = 0.0
@@ -162,7 +236,15 @@ def main():
                 dy /= mag
                 pos[0] += dx * speed * FIXED_DT
                 pos[1] += dy * speed * FIXED_DT
-
+                
+                # Update rotation angle based on movement direction
+                # atan2 returns angle in radians, convert to degrees
+                # pygame y-axis points down, so we use dy directly
+                angle = math.degrees(math.atan2(dy, dx))
+                
+                # Store velocity
+                velocity = [dx * speed, dy * speed]
+            
             pos[0] = float(np.clip(pos[0], MARGIN + 5, WIDTH - MARGIN - 5))
             pos[1] = float(np.clip(pos[1], MARGIN + 5, HEIGHT - MARGIN - 5))
             accum_dt -= FIXED_DT
@@ -170,9 +252,12 @@ def main():
         screen.fill(BG_COLOR)
         draw_walls(screen, walls)
 
+        # Check for collision
+        is_colliding = check_wall_collision((pos[0], pos[1]), walls)
+
         norm_dists = lidar8((pos[0], pos[1]), walls, R_MAX)
         draw_rays(screen, (pos[0], pos[1]), norm_dists)
-        draw_car(screen, (pos[0], pos[1]))
+        draw_car(screen, (pos[0], pos[1]), car_image, angle, is_colliding)
         draw_readout(screen, font, norm_dists)
 
         hud = font.render("Arrow keys to move • Distances normalized to [0,1] • ESC to quit", True, TEXT_COLOR)
