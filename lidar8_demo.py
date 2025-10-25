@@ -1,13 +1,7 @@
 """
-Milestone 1: 2D car with 8-direction LiDAR in Pygame
 - Arrow keys move the car (no rotation yet)
 - 8 compass rays (N, NE, E, SE, S, SW, W, NW)
 - Distances normalized to [0, 1] and displayed on screen
-
-Setup:
-    pip install pygame numpy
-Run:
-    python lidar8_demo.py
 """
 
 import math
@@ -16,6 +10,8 @@ from typing import List, Tuple, Optional
 
 import numpy as np
 import pygame
+
+from build_track import square_track
 
 # ----------------------------
 # Window & world parameters
@@ -29,7 +25,7 @@ CAR_COLOR = (255, 90, 90)
 TEXT_COLOR = (230, 230, 230)
 
 # LiDAR parameters
-R_MAX = 300.0  # max sensing range in pixels
+R_MAX = 100.0  # max sensing range in pixels
 ROOT2 = math.sqrt(2.0)
 DIRS_8 = np.array([
     ( 0.0, -1.0),              # N  (up)
@@ -96,26 +92,6 @@ def lidar8(p: Vec2, walls: List[Segment], r_max: float = R_MAX) -> np.ndarray:
     return (np.array(dists, dtype=np.float32) / r_max).clip(0.0, 1.0)
 
 # ----------------------------
-# World construction
-# ----------------------------
-
-def build_walls() -> List[Segment]:
-    walls: List[Segment] = []
-    tl = (MARGIN, MARGIN)
-    tr = (WIDTH - MARGIN, MARGIN)
-    br = (WIDTH - MARGIN, HEIGHT - MARGIN)
-    bl = (MARGIN, HEIGHT - MARGIN)
-    walls.extend([(tl, tr), (tr, br), (br, bl), (bl, tl)])
-
-    y_mid = HEIGHT * 0.5
-    walls.append(((MARGIN + 120, y_mid), (WIDTH - MARGIN - 120, y_mid)))
-    walls.append(((WIDTH*0.35, HEIGHT*0.25), (WIDTH*0.55, HEIGHT*0.35)))
-    x_post = WIDTH * 0.7
-    walls.append(((x_post, MARGIN + 120), (x_post, HEIGHT - MARGIN - 120)))
-
-    return walls
-
-# ----------------------------
 # Drawing helpers
 # ----------------------------
 
@@ -159,7 +135,7 @@ def main():
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("consolas", 18)
 
-    walls = build_walls()
+    walls = square_track(WIDTH, HEIGHT, MARGIN)
 
     pos = [WIDTH * 0.25, HEIGHT * 0.35]
     speed = 180.0
