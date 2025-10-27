@@ -1,14 +1,16 @@
 # CMPT 310 Project
 ## Car Racing RL with DQN/PPO
 By: Daniel Smith, Amir, Diar Shakimov, Jim Chen
----
+
 ### Requirements
+---
 1. Python 3.13.0
 2. (Optional) UV for package handling ( `pip install uv` )
 
 (uv is just a better package handler for Python, works faster)
----
+
 ### Installation
+---
 ```bash
 # setup + activate virtual environment
 python -m venv .venv    
@@ -25,14 +27,15 @@ uv venv
 # install required packages
 uv pip install -r requirements.txt
 ```
----
+
 ### Playing
+---
 ```bash
 python main.py
 ```
----
 
 ### Controls
+---
 * [W] to accelerate
 * [S] to brake
 * [A/D] to steer left/right
