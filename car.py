@@ -19,21 +19,34 @@ class Car:
         self.angle = 0.0  # Rotation angle in degrees
         self.velocity = [0.0, 0.0]
         self.speed = 180.0
-        
-    def update(self, dx: float, dy: float, dt: float):
-        """Update car position and rotation based on input."""
-        mag = math.hypot(dx, dy)
-        if mag > 0:
-            dx /= mag
-            dy /= mag
-            self.pos[0] += dx * self.speed * dt
-            self.pos[1] += dy * self.speed * dt
-            
-            # Update rotation angle based on movement direction
-            self.angle = math.degrees(math.atan2(dy, dx))
-            
-            # Store velocity
-            self.velocity = [dx * self.speed, dy * self.speed]
+        self.max_speed = 180.0
+        self.acceleration = 300.0
+        self.brake = 400.0
+        self.friction = 2.0
+        self.heading_r = 0.0 # radians
+
+    def update(self, steer: float, throttle: float, brake: float, dt: float):
+        # steer in [-1, 1], throttle in [-1, 1], brake in [0, 1]
+
+        self.heading_r += steer * dt * 2.0  # Adjust heading based on steering input
+
+        fx = math.cos(self.heading_r)
+        fy = math.sin(self.heading_r)
+
+        vx, vy = self.velocity
+        v_long = fx * vx + fy * vy
+
+        a = self.acceleration * throttle - self.brake * brake * math.copysign(1.0, v_long)
+
+        v_long = v_long + a * dt
+        v_long *= max(0.0, 1.0 - self.friction * dt)
+
+        v_long = max(-0.25 * self.max_speed, min(self.max_speed, v_long))
+
+        self.velocity = [fx * v_long, fy * v_long]
+
+        self.pos[0] += self.velocity[0] * dt
+        self.pos[1] += self.velocity[1] * dt
     
     def constrain_to_bounds(self, min_x: float, max_x: float, min_y: float, max_y: float):
         """Keep car within bounds."""

@@ -1,12 +1,16 @@
 """
-LiDAR-8 Demo — Milestone 1
-- Arrow keys move the car
+LiDAR-8 Demo — Milestone 1.5
+- Left/Right  : steer (-1..+1)
+- Up          : throttle (0..1)
+- Down        : brake (0..1)
 - 8 compass rays (N, NE, E, SE, S, SW, W, NW)
 - Distances normalized to [0, 1] and displayed on screen
 """
 
+import math
 import sys
 import pygame
+from math import degrees
 
 from build_track import square_track
 from car import Car
@@ -43,18 +47,14 @@ def main():
 
     walls = square_track(WIDTH, HEIGHT, MARGIN)
 
-    # Load car image (optional - set to None to use rectangle fallback)
+    # load car image
     car_image = None
     try:
-        # Try to load car.png from the same directory
-        # Replace 'car.png' with your actual image filename
         original_car_image = pygame.image.load('car.png').convert_alpha()
         # Scale the image to match hitbox dimensions
         car_image = pygame.transform.scale(original_car_image, (CAR_WIDTH, CAR_HEIGHT))
-    except FileNotFoundError:
-        print("car.png not found - using rectangle fallback")
-    except Exception as e:
-        print(f"Error loading car image: {e} - using rectangle fallback")
+    except Exception:
+        print(f"car.png not found or failed to load - using rectangle fallback")
 
     # Create car
     car = Car(WIDTH * 0.25, HEIGHT * 0.35, CAR_WIDTH, CAR_HEIGHT)
@@ -62,6 +62,10 @@ def main():
     running = True
     accum_dt = 0.0
     FIXED_DT = 1.0 / 60.0
+
+    # control smoothing
+    STEER_RATE = 4.0 # how fast steer target changes per second
+    steer_cmd = 0.0
 
     while running:
         dt = clock.tick(60) / 1000.0
@@ -73,16 +77,24 @@ def main():
 
         while accum_dt >= FIXED_DT:
             keys = pygame.key.get_pressed()
-            dx = (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT])
-            dy = (keys[pygame.K_DOWN] - keys[pygame.K_UP])
             
-            # Update car
-            car.update(dx, dy, FIXED_DT)
-            car.constrain_to_bounds(MARGIN + 5, WIDTH - MARGIN - 5, 
-                                   MARGIN + 5, HEIGHT - MARGIN - 5)
+            target_steer = float(keys[pygame.K_RIGHT]) - float(keys[pygame.K_LEFT])
+
+            if target_steer > steer_cmd:
+                steer_cmd = min(target_steer, steer_cmd + STEER_RATE * FIXED_DT)
+            elif target_steer < steer_cmd:
+                steer_cmd = max(target_steer, steer_cmd - STEER_RATE * FIXED_DT)
+            
+            throttle = float(keys[pygame.K_UP])
+            brake = float(keys[pygame.K_DOWN])
+
+            car.update(steer=steer_cmd, throttle=throttle, brake=brake, dt=FIXED_DT)
+
+            car.constrain_to_bounds(MARGIN + 5, WIDTH - MARGIN - 5, MARGIN + 5, HEIGHT - MARGIN - 5)
             
             accum_dt -= FIXED_DT
 
+        # RENDERING
         screen.fill(BG_COLOR)
         draw_walls(screen, walls)
 
@@ -93,9 +105,11 @@ def main():
         norm_dists = lidar8((car.pos[0], car.pos[1]), walls, R_MAX)
         
         # Draw everything
+        angle_deg = math.degrees(car.heading_r)
+
         draw_rays(screen, (car.pos[0], car.pos[1]), norm_dists, R_MAX)
         draw_car(screen, (car.pos[0], car.pos[1]), car.width, car.height, 
-                car_image, car.angle, is_colliding)
+                car_image, angle_deg, is_colliding)
         draw_readout(screen, font, norm_dists, WIDTH, HEIGHT, MARGIN)
         draw_hud(screen, font, MARGIN)
 
