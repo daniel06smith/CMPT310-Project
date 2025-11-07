@@ -15,11 +15,11 @@ pip install numpy stable-baselines3 gymnasium pygame
 ### Training
 ---
 ```bash
-python train_lidar_laps.py
+python train_car_agent.py
 ```
 
 ### Test
 ---
 ```bash
-python watch_lidar_laps.py
+python run_car_agent.py
 ```

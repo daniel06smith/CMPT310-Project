@@ -11,7 +11,7 @@ from typing import List, Tuple, Optional
 import numpy as np
 import pygame
 
-from car_track.build_track import square_track
+from build_track import square_track
 
 # ----------------------------
 # Window & world parameters
