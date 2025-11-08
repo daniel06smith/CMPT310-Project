@@ -7,8 +7,10 @@ import math
 
 class CarLidarEnv(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": 60}
+    CHECKPOINT_COLOR = (56, 182, 255)
+    FINISH_LINE_COLOR = (203, 108, 230)
 
-    def __init__(self, render_mode=None, track_num = 1):
+    def __init__(self, render_mode=None, track_num = 3):
         super().__init__()
         pygame.init()
         self.WIDTH, self.HEIGHT = 800, 600
@@ -44,6 +46,9 @@ class CarLidarEnv(gym.Env):
         self.max_speed = 8
         self.max_lidar = 250
 
+        # Checkpoint activation
+        self.active_checkpoints = True
+
         self.reset()
 
     # -----------------------------------
@@ -61,7 +66,11 @@ class CarLidarEnv(gym.Env):
         for (cx, cy) in corners:
             if 0 <= cx < self.WIDTH and 0 <= cy < self.HEIGHT:
                 color = self.track.get_at((int(cx), int(cy)))[:3]
-                if color <= (100, 100, 100):
+                # skip checkpoints and finish line
+                if color == self.FINISH_LINE_COLOR or color == self.CHECKPOINT_COLOR:
+                    continue
+                # collision with non-track
+                if color[0] <= 100 and color[1] <= 100 and color[2] <= 100:
                     return True
         return False
 
@@ -129,16 +138,40 @@ class CarLidarEnv(gym.Env):
         if self.check_collision(corners):
             reward = -10.0
             terminated = True
-            self.velocity_x = self.velocity_y = 0
         else:
             self.x, self.y = next_x, next_y
             terminated = False
+
+            reward += self.checkpoint_reward_system()
 
         obs = self.get_lidar_readings()
         truncated = False
         info = {}
 
         return obs, reward, terminated, truncated, info
+    
+    def checkpoint_reward_system(self):
+        """
+        Check if the car has crossed a checkpoint or finish line and return appropriate reward.
+        """
+        cx, cy = int(self.x), int(self.y)
+        if not (0 <= cx < self.WIDTH and 0 <= cy < self.HEIGHT):
+            return 0.0
+        
+        color = self.track.get_at((cx, cy))[:3]
+
+        # finish line
+        if color == self.FINISH_LINE_COLOR:
+            self.active_checkpoints = True
+            return 100.0
+        
+        # checkpoint
+        if color == self.CHECKPOINT_COLOR and self.active_checkpoints:
+            # give reward and deactivate checkpoint for this lap
+            self.active_checkpoints = False
+            return 10.0
+            
+        return 0.0
 
     def render(self):
         if self.render_mode != "human":

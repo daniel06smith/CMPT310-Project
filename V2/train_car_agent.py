@@ -3,7 +3,7 @@ from stable_baselines3.common.env_checker import check_env
 from car_lidar_env import CarLidarEnv
 
 # Create env (no render for faster training)
-env = CarLidarEnv(render_mode='human')
+env = CarLidarEnv(render_mode='human', track_num=3)
 
 # Check compatibility
 check_env(env, warn=True)
