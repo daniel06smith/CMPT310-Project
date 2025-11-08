@@ -138,9 +138,6 @@ class CarLidarEnv(gym.Env):
         truncated = False
         info = {}
 
-        if self.render_mode == "human":
-            self.render()
-
         return obs, reward, terminated, truncated, info
 
     def render(self):
@@ -153,7 +150,14 @@ class CarLidarEnv(gym.Env):
             rad = math.radians(-self.angle - a)
             end_x = self.x + math.cos(rad) * dist
             end_y = self.y + math.sin(rad) * dist
-            pygame.draw.line(self.screen, (255, 255, 0), (self.x, self.y), (end_x, end_y), 2)
+            # only draw the lidar ray if we actually have good numbers
+            if (
+                isinstance(end_x, (int, float))
+                and isinstance(end_y, (int, float))
+                and not math.isnan(end_x)
+                and not math.isnan(end_y)
+            ):
+                pygame.draw.line(self.screen, (255, 255, 0), (self.x, self.y), (end_x, end_y), 2)
         # Draw car
         rotated_car = pygame.transform.rotate(self.car_image, self.angle)
         rect = rotated_car.get_rect(center=(self.x, self.y))
