@@ -19,15 +19,17 @@ class CarLidarEnv(gym.Env):
 
         if render_mode == "human":
             self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
+            self.track = pygame.image.load(f"track{self.track_num}.png").convert()
+            self.car_image = pygame.image.load("car.png").convert_alpha()
         else:
             self.screen = pygame.Surface((self.WIDTH, self.HEIGHT))
+            self.track = pygame.image.load(f"track{self.track_num}.png")
+            self.car_image = pygame.image.load("car.png")
 
         self.clock = pygame.time.Clock()
 
         # Load track and car
-        self.track = pygame.image.load(f"track{self.track_num}.png").convert()
         self.track = pygame.transform.scale(self.track, (self.WIDTH, self.HEIGHT))
-        self.car_image = pygame.image.load("car.png").convert_alpha()
         self.car_image = pygame.transform.scale(self.car_image, (35, 30))
         self.car_w, self.car_h = self.car_image.get_size()
 
@@ -46,10 +48,21 @@ class CarLidarEnv(gym.Env):
         self.max_speed = 8
         self.max_lidar = 250
 
-        # Checkpoint activation
-        self.active_checkpoints = True
+        # HUD variables
+        self.hud_episode = 0
+        self.hud_score = 0.0
+
+        # Lap tracking
+        self.laps_completed = 0
+        self.checkpoint_count = 11
+        self.next_checkpoint = 0
+        self.checkpoint_angles = [90 + i * (360 / 11) for i in range(11)]  # starting bottom, counter-clockwise
 
         self.reset()
+
+    def set_hud(self, episode, score):
+        self.hud_episode = episode
+        self.hud_score = score
 
     # -----------------------------------
     # Utility functions
@@ -102,6 +115,7 @@ class CarLidarEnv(gym.Env):
         self.angle = 0
         self.velocity_x, self.velocity_y = 0, 0
         self.crashed = False
+        self.next_checkpoint = 0
         obs = self.get_lidar_readings()
         return obs, {}
 
@@ -133,6 +147,8 @@ class CarLidarEnv(gym.Env):
         corners = self.get_rotated_hitbox(next_x, next_y, self.car_w, self.car_h, self.angle)
 
         reward = 0.1  # small positive reward for surviving
+        reward += speed * 0.05  # reward for moving fast
+        reward -= 0.01  # time penalty to encourage faster completion
 
         # Collision check
         if self.check_collision(corners):
@@ -162,14 +178,25 @@ class CarLidarEnv(gym.Env):
 
         # finish line
         if color == self.FINISH_LINE_COLOR:
-            self.active_checkpoints = True
-            return 100.0
+            if self.next_checkpoint == self.checkpoint_count:
+                self.next_checkpoint = 0
+                self.laps_completed += 1
+                return 1000.0 + self.laps_completed * 100.0
+            else:
+                return 0.0
         
         # checkpoint
-        if color == self.CHECKPOINT_COLOR and self.active_checkpoints:
-            # give reward and deactivate checkpoint for this lap
-            self.active_checkpoints = False
-            return 10.0
+        if color == self.CHECKPOINT_COLOR:
+            # Calculate angle from center
+            dx = self.x - 400
+            dy = self.y - 300
+            angle = math.degrees(math.atan2(dy, dx)) % 360
+            # Find closest checkpoint
+            closest = min(range(11), key=lambda i: min(abs(angle - self.checkpoint_angles[i]), 360 - abs(angle - self.checkpoint_angles[i])))
+            if closest == self.next_checkpoint:
+                self.next_checkpoint += 1
+                return 10.0
+            return 0.0
             
         return 0.0
 
@@ -195,6 +222,14 @@ class CarLidarEnv(gym.Env):
         rotated_car = pygame.transform.rotate(self.car_image, self.angle)
         rect = rotated_car.get_rect(center=(self.x, self.y))
         self.screen.blit(rotated_car, rect.topleft)
+        
+        # Draw HUD
+        font = pygame.font.SysFont(None, 24)
+        episode_text = font.render(f"Episode: {self.hud_episode}", True, (255, 255, 255))
+        score_text = font.render(f"Score: {self.hud_score:.2f}", True, (255, 255, 255))
+        self.screen.blit(episode_text, (10, 10))
+        self.screen.blit(score_text, (10, 40))
+        
         pygame.display.flip()
         self.clock.tick(self.metadata["render_fps"])
         for event in pygame.event.get():
