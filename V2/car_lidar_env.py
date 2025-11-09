@@ -19,8 +19,12 @@ class CarLidarEnv(gym.Env):
 
         if render_mode == "human":
             self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
+            self.track = pygame.image.load(f"track{self.track_num}.png").convert()
+            self.car_image = pygame.image.load("car.png").convert_alpha()
         else:
             self.screen = pygame.Surface((self.WIDTH, self.HEIGHT))
+            self.track = pygame.image.load(f"track{self.track_num}.png")
+            self.car_image = pygame.image.load("car.png")
 
         self.clock = pygame.time.Clock()
 
@@ -30,9 +34,7 @@ class CarLidarEnv(gym.Env):
         self.hud_reward = 0.0
 
         # Load track and car
-        self.track = pygame.image.load(f"track{self.track_num}.png").convert()
         self.track = pygame.transform.scale(self.track, (self.WIDTH, self.HEIGHT))
-        self.car_image = pygame.image.load("car.png").convert_alpha()
         self.car_image = pygame.transform.scale(self.car_image, (35, 30))
         self.car_w, self.car_h = self.car_image.get_size()
 

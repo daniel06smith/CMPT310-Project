@@ -14,7 +14,7 @@ LOG_PATH = os.path.join(LOG_DIR, "run_log.csv")
 model = PPO.load(MODEL_PATH)
 
 # Use human render to see it
-env = CarLidarEnv(render_mode="human", track_num=3)
+env = CarLidarEnv(render_mode="human", track_num=5)
 
 file_exists = os.path.isfile(LOG_PATH)
 
