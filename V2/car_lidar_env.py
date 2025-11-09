@@ -24,6 +24,11 @@ class CarLidarEnv(gym.Env):
 
         self.clock = pygame.time.Clock()
 
+        # HUD
+        self.font = pygame.font.SysFont(None, 24)
+        self.hud_episode = 1
+        self.hud_reward = 0.0
+
         # Load track and car
         self.track = pygame.image.load(f"track{self.track_num}.png").convert()
         self.track = pygame.transform.scale(self.track, (self.WIDTH, self.HEIGHT))
@@ -177,6 +182,7 @@ class CarLidarEnv(gym.Env):
         if self.render_mode != "human":
             return
         self.screen.blit(self.track, (0, 0))
+
         # Draw lidar
         angles = [-60, -30, 0, 30, 60]
         for a, dist in zip(angles, self.get_lidar_readings() * self.max_lidar):
@@ -191,12 +197,23 @@ class CarLidarEnv(gym.Env):
                 and not math.isnan(end_y)
             ):
                 pygame.draw.line(self.screen, (255, 255, 0), (self.x, self.y), (end_x, end_y), 2)
+
         # Draw car
         rotated_car = pygame.transform.rotate(self.car_image, self.angle)
         rect = rotated_car.get_rect(center=(self.x, self.y))
         self.screen.blit(rotated_car, rect.topleft)
         pygame.display.flip()
         self.clock.tick(self.metadata["render_fps"])
+
+        # Draw HUD
+        hud_text = f"Episode: {self.hud_episode}  Reward: {self.hud_reward:.1f}"
+        text_surface = self.font.render(hud_text, True, (255, 255, 255))
+        self.screen.blit(text_surface, (10, 10))
+
+        if self.render_mode == "human":
+            pygame.display.flip()
+            self.clock.tick(self.metadata["render_fps"])
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
