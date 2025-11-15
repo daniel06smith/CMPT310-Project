@@ -1,5 +1,4 @@
 import os
-os.environ["SDL_VIDEODRIVER"] = "dummy" 
 import pygame
 import gymnasium as gym
 from gymnasium import spaces
@@ -20,7 +19,6 @@ class CarLidarEnv(gym.Env):
         if render_mode == "human":
             self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
         else:
-            os.environ["SDL_VIDEODRIVER"] = "dummy"
             self.screen = pygame.Surface((self.WIDTH, self.HEIGHT))
 
         self.clock = pygame.time.Clock()

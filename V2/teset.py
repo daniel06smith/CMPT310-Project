@@ -1,7 +1,7 @@
 from car_lidar_env import CarLidarEnv
 
 # Headless mode for training
-env = CarLidarEnv(render_mode=None, track_num=1)
+env = CarLidarEnv(render_mode="human", track_num=1)
 obs, _ = env.reset()
 print("Observation shape:", obs.shape)
 env.close()
