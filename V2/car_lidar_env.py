@@ -16,6 +16,23 @@ class CarLidarEnv(gym.Env):
         self.render_mode = render_mode
         self.track_num = track_num
 
+        self.checkpoint_colors = [
+        # colors used with eye drop tool
+        # (255, 0, 255),     # CP0: magenta
+        # (0, 255, 255),     # CP1: cyan
+        # (255, 255, 0),     # CP2: yellow
+        # (255, 128, 0),     # CP3: orange
+        # (0, 255, 0),       # CP4: green
+
+        # real colors
+        (234, 51, 247),     # CP0: magenta
+        (117, 251, 253),     # CP1: cyan
+        (255, 255, 84),     # CP2: yellow
+        (240, 156, 73),     # CP3: orange
+        (117, 251, 76),       # CP4: green
+        ]
+        self.current_checkpoint = 0
+
         if render_mode == "human":
             self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
         else:
@@ -31,7 +48,7 @@ class CarLidarEnv(gym.Env):
         self.car_w, self.car_h = self.car_image.get_size()
 
         # Define action and observation spaces
-        # Actions: [steer_left, steer_right, accelerate, brake]
+        # Actions: [steer_left, steer_right, accelerate]
         self.action_space = spaces.Discrete(3)
 
         # Observation: 5 LIDAR distances (normalized 0–1)
@@ -83,6 +100,39 @@ class CarLidarEnv(gym.Env):
         angles = [-60, -30, 0, 30, 60]
         readings = [self.cast_lidar(self.x, self.y, self.angle + a) / self.max_lidar for a in angles]
         return np.array(readings, dtype=np.float32)
+    
+    def check_checkpoint_pixel(self):
+        # Get pixel under the car
+        cx, cy = int(self.x), int(self.y)
+        color = self.track.get_at((cx, cy))[:3]
+
+        expected_color = self.checkpoint_colors[self.current_checkpoint]
+        print("Pixel color at car:", color, "expected:", expected_color)
+
+        # If car touches correct checkpoint color → progress!
+        if self.color_close(color, expected_color):
+            self.current_checkpoint += 1
+
+            print(f"🚩 Hit checkpoint {self.current_checkpoint} at ({cx}, {cy})")
+
+            # Completed all checkpoints? → Lap!
+            if self.current_checkpoint >= len(self.checkpoint_colors):
+                print("🏁 Completed a LAP!") 
+                self.current_checkpoint = 0
+                return "lap"
+
+            return "checkpoint"
+
+        return None
+    
+    def color_close(self, c1, c2, tol=40):
+        return (
+            abs(c1[0] - c2[0]) <= tol and
+            abs(c1[1] - c2[1]) <= tol and
+            abs(c1[2] - c2[2]) <= tol
+        )
+
+
 
     # -----------------------------------
     # Core Gym methods
@@ -106,10 +156,7 @@ class CarLidarEnv(gym.Env):
         elif action == 2:  # accelerate
             self.velocity_x += math.cos(math.radians(self.angle)) * self.acceleration
             self.velocity_y -= math.sin(math.radians(self.angle)) * self.acceleration
-        # elif action == 3:  # brake
-        #     self.velocity_x *= 0.9
-        #     self.velocity_y *= 0.9
-
+        
         # Speed limiting + friction
         speed = math.sqrt(self.velocity_x**2 + self.velocity_y**2)
         if speed > self.max_speed:
@@ -141,6 +188,15 @@ class CarLidarEnv(gym.Env):
 
         if self.render_mode == "human":
             self.render()
+        
+        # Checkpoints rewards
+        result = self.check_checkpoint_pixel()
+
+        if result == "checkpoint":
+            reward += 5.0      # strong reward for progress
+        elif result == "lap":
+            reward += 20.0     # huge reward for completing the track
+
 
         return obs, reward, terminated, truncated, info
 

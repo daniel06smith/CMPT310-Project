@@ -10,7 +10,7 @@ pygame.display.set_caption("Car Track with Lidar Sensors")
 clock = pygame.time.Clock()
 
 # --- Load assets ---
-track = pygame.image.load("track2.png").convert()
+track = pygame.image.load("track3.png").convert()
 track = pygame.transform.scale(track, (WIDTH, HEIGHT))
 
 car_image = pygame.image.load("car.png").convert_alpha()
@@ -72,6 +72,36 @@ def get_lidar_readings(x, y, angle, track_surface):
         pygame.draw.circle(screen, (255, 0, 0), point, 3)
     return readings
 
+def check_checkpoint_pixel(x, y, track_surface, checkpoint_colors, current_checkpoint):
+    # Read pixel at car position
+    cx, cy = int(x), int(y)
+    color = track_surface.get_at((cx, cy))[:3]
+
+    expected_color = checkpoint_colors[current_checkpoint]
+    print("Pixel color at car:", color, "expected:", expected_color)
+
+    # Did we hit the expected checkpoint?
+    if color == expected_color:
+        print(f"🚩 Hit checkpoint {current_checkpoint} at ({cx}, {cy})")
+        current_checkpoint += 1
+
+        if current_checkpoint >= len(checkpoint_colors):
+            print("🏁 Completed a LAP!")
+            current_checkpoint = 0
+            return "lap", current_checkpoint
+
+        return "checkpoint", current_checkpoint
+
+    return None, current_checkpoint
+
+checkpoint_colors = [
+    (255, 0, 255),   # magenta checkpoint 0
+    (0, 255, 255),   # cyan checkpoint 1
+    (255, 255, 0),   # yellow checkpoint 2
+]
+
+current_checkpoint = 0
+
 # --- Game loop ---
 running = True
 while running:
@@ -113,6 +143,10 @@ while running:
         velocity_y = 0
     else:
         x, y = next_x, next_y
+
+    result, current_checkpoint = check_checkpoint_pixel(
+        x, y, track, checkpoint_colors, current_checkpoint
+    )
 
     # --- Draw everything ---
     screen.blit(track, (0, 0))

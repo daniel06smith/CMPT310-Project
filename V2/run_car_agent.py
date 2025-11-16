@@ -6,7 +6,7 @@ import time
 model = PPO.load("ppo_car_lidar")
 
 # Use human render to see it
-env = CarLidarEnv(render_mode="human", track_num=1)
+env = CarLidarEnv(render_mode="human", track_num=3)
 
 obs, _ = env.reset()
 done = False
