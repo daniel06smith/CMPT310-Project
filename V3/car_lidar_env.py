@@ -171,8 +171,8 @@ class CarLidarEnv(gym.Env):
         next_y = self.y + self.velocity_y
         corners = self.get_rotated_hitbox(next_x, next_y, self.car_w, self.car_h, self.angle)
 
-        reward = 0.1  # small positive reward for surviving
-        # reward += 0.03 * speed # for speed
+        reward = 0.02  # small positive reward for surviving
+        reward += 0.03 * speed # for speed
 
         # Collision check
         if self.check_collision(corners):
