@@ -1,6 +1,6 @@
 import torch
 from car_lidar_env import CarLidarEnv
-from dqn_agent import DQNAgent
+from V3.dqn_agent import DQNAgent
 
 env = CarLidarEnv(render_mode="human")
 

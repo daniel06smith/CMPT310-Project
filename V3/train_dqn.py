@@ -2,7 +2,7 @@ import torch
 from car_lidar_env import CarLidarEnv
 from dqn_agent import DQNAgent, ReplayBuffer
 
-env = CarLidarEnv(render_mode="human", track_num=3)
+env = CarLidarEnv(render_mode="human", track_num=1)
 
 obs, _ = env.reset()
 obs_dim = len(obs)

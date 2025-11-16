@@ -107,17 +107,17 @@ class CarLidarEnv(gym.Env):
         color = self.track.get_at((cx, cy))[:3]
 
         expected_color = self.checkpoint_colors[self.current_checkpoint]
-        print("Pixel color at car:", color, "expected:", expected_color)
+        # print("Pixel color at car:", color, "expected:", expected_color)
 
         # If car touches correct checkpoint color → progress!
         if self.color_close(color, expected_color):
             self.current_checkpoint += 1
 
-            print(f"🚩 Hit checkpoint {self.current_checkpoint} at ({cx}, {cy})")
+            print(f"Hit checkpoint {self.current_checkpoint} at ({cx}, {cy})")
 
             # Completed all checkpoints? → Lap!
             if self.current_checkpoint >= len(self.checkpoint_colors):
-                print("🏁 Completed a LAP!") 
+                print("Completed a LAP!") 
                 self.current_checkpoint = 0
                 return "lap"
 
@@ -171,8 +171,8 @@ class CarLidarEnv(gym.Env):
         next_y = self.y + self.velocity_y
         corners = self.get_rotated_hitbox(next_x, next_y, self.car_w, self.car_h, self.angle)
 
-        reward = 0.02  # small positive reward for surviving
-        reward += 0.03 * speed # for speed
+        reward = 0.1  # small positive reward for surviving
+        # reward += 0.03 * speed # for speed
 
         # Collision check
         if self.check_collision(corners):
