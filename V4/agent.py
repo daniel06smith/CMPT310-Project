@@ -31,7 +31,7 @@ matplotlib.use('Agg')
 
 device = 'cpu' # force cpu
 
-TRACK_NUM = 2 # Track numbers [1, 2, 3, 4 ....]
+TRACK_NUM = 3 # Track numbers [1, 2, 3, 4 ....]
 
 # Deep Q-Learning Agent
 class Agent():
@@ -56,7 +56,7 @@ class Agent():
         self.epsilon_min        = hyperparameters['epsilon_min']            # minimum epsilon value
         self.stop_on_reward     = hyperparameters['stop_on_reward']         # stop training after reaching this number of rewards
         self.fc1_nodes          = hyperparameters['fc1_nodes']
-        self.env_make_params    = hyperparameters.get('env_make_params',{}) # Get optional environment-specific parameters, default to empty dict
+
 
         # Neural Network
         self.loss_fn = nn.MSELoss()          # NN Loss function. MSE=Mean Squared Error can be swapped to something else.
@@ -78,7 +78,6 @@ class Agent():
                 file.write(log_message + '\n')
 
         # Create instance of the environment.
-        # Use "**self.env_make_params" to pass in environment-specific parameters from hyperparameters.yml.
         env = Racer(render_mode="human", track_num=TRACK_NUM)
 
         # Number of possible actions
@@ -283,6 +282,6 @@ if __name__ == '__main__':
     dql = Agent(hyperparameter_set=args.hyperparameters)
 
     if args.train:
-        dql.run(is_training=True, render=True)
+        dql.run(is_training=True)
     else:
         dql.run(is_training=False, render=True)

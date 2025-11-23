@@ -9,13 +9,11 @@ Custom racing environment using pygame and wraping with Gymnasium API. Trains th
 ### Requirements
 ---
 ```bash
-pip install numpy gymnasium pygame 
+pip install numpy gymnasium pygame torch torchvision matplotlib 
 ```
 
 ### Track selection/creation
-Using the provided shapes, you can make custom tracks
-Track selection 
-
+Using the provided shapes, you can make custom tracks here: https://docs.google.com/presentation/d/1ciblqaFEaYMehfQGdd6yzgFPScmP8V11G4hfrsuJBuQ/edit?usp=sharing (just copy and paste the shapes in your program)
 
 ### Training
 ---
@@ -29,5 +27,5 @@ python agent.py racer1 --train
 ### Test
 ---
 ```bash
-python agent.py
+python agent.py racer1
 ```

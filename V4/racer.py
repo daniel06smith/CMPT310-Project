@@ -1,4 +1,7 @@
 import os
+# Set SDL to use dummy video driver BEFORE importing pygame
+os.environ['SDL_VIDEODRIVER'] = 'dummy'
+
 import pygame
 import gymnasium as gym
 from gymnasium import spaces
@@ -9,7 +12,7 @@ import math
 class Racer(gym.Env):
     metadata = {"render_modes": ["human", None], "render_fps": 60}
 
-    def __init__(self, render_mode=None, track_num = 1):
+    def __init__(self, render_mode=None, track_num=1):
         super().__init__()
         pygame.init()
         self.WIDTH, self.HEIGHT = 800, 600
@@ -17,19 +20,12 @@ class Racer(gym.Env):
         self.track_num = track_num
 
         self.checkpoint_colors = [
-        # colors used with eye drop tool
-        # (255, 0, 255),     # CP0: magenta
-        # (0, 255, 255),     # CP1: cyan
-        # (255, 255, 0),     # CP2: yellow
-        # (255, 128, 0),     # CP3: orange
-        # (0, 255, 0),       # CP4: green
-
-        # real colors
-        (234, 51, 247),     # CP0: magenta
-        (117, 251, 253),     # CP1: cyan
-        (255, 255, 84),     # CP2: yellow
-        (240, 156, 73),     # CP3: orange
-        (117, 251, 76),       # CP4: green
+            # real colors
+            (234, 51, 247),     # CP0: magenta
+            (117, 251, 253),    # CP1: cyan
+            (255, 255, 84),     # CP2: yellow
+            (240, 156, 73),     # CP3: orange
+            (117, 251, 76),     # CP4: green
         ]
         self.current_checkpoint = 0
 
@@ -107,7 +103,6 @@ class Racer(gym.Env):
         color = self.track.get_at((cx, cy))[:3]
 
         expected_color = self.checkpoint_colors[self.current_checkpoint]
-        # print("Pixel color at car:", color, "expected:", expected_color)
 
         # If car touches correct checkpoint color → progress!
         if self.color_close(color, expected_color):
@@ -132,8 +127,6 @@ class Racer(gym.Env):
             abs(c1[2] - c2[2]) <= tol
         )
 
-
-
     # -----------------------------------
     # Core Gym methods
     # -----------------------------------
@@ -144,6 +137,7 @@ class Racer(gym.Env):
         self.angle = 0
         self.velocity_x, self.velocity_y = 0, 0
         self.crashed = False
+        self.current_checkpoint = 0  # Reset checkpoint progress
         obs = self.get_lidar_readings()
         return obs, {}
 
@@ -172,7 +166,7 @@ class Racer(gym.Env):
         corners = self.get_rotated_hitbox(next_x, next_y, self.car_w, self.car_h, self.angle)
 
         reward = 0.02  # small positive reward for surviving
-        reward += 0.03 * speed # for speed
+        reward += 0.03 * speed  # for speed
 
         # Collision check
         if self.check_collision(corners):
@@ -198,7 +192,6 @@ class Racer(gym.Env):
         elif result == "lap":
             reward += 20.0     # huge reward for completing the track
 
-
         return obs, reward, terminated, truncated, info
 
     def render(self):
@@ -221,7 +214,6 @@ class Racer(gym.Env):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-
 
     def close(self):
         pygame.quit()

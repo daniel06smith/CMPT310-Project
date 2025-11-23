@@ -13,12 +13,3 @@ class DQN(nn.Module):
     def forward(self, x):
         x = F.relu(self.fc1(x))
         return self.fc2(x)
-
-
-if __name__ == '__main__':
-    state_dim = 12
-    action_dim = 2
-    net = DQN(state_dim, action_dim)
-    state = torch.randn(10, state_dim)
-    output = net(state)
-    print(output)
