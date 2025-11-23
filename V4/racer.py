@@ -1,7 +1,4 @@
 import os
-# Set SDL to use dummy video driver BEFORE importing pygame
-os.environ['SDL_VIDEODRIVER'] = 'dummy'
-
 import pygame
 import gymnasium as gym
 from gymnasium import spaces
@@ -14,6 +11,11 @@ class Racer(gym.Env):
 
     def __init__(self, render_mode=None, track_num=1):
         super().__init__()
+        
+        # Set dummy video driver for headless mode
+        if render_mode != "human":
+            os.environ['SDL_VIDEODRIVER'] = 'dummy'
+        
         pygame.init()
         self.WIDTH, self.HEIGHT = 800, 600
         self.render_mode = render_mode
@@ -46,8 +48,8 @@ class Racer(gym.Env):
         self.car_w, self.car_h = self.car_image.get_size()
 
         # Define action and observation spaces
-        # Actions: [steer_left, steer_right, accelerate]
-        self.action_space = spaces.Discrete(3)
+        # Actions: 0=left, 1=right, 2=accel, 3=left+accel, 4=right+accel, 5=do nothing
+        self.action_space = spaces.Discrete(6)
 
         # Observation: 5 LIDAR distances (normalized 0–1)
         self.num_lidars = 5
@@ -145,13 +147,22 @@ class Racer(gym.Env):
 
     def step(self, action):
         # Interpret action
-        if action == 0:   # steer left
+        if action == 0:   # steer left only
             self.angle += self.turn_speed
-        elif action == 1:  # steer right
+        elif action == 1:  # steer right only
             self.angle -= self.turn_speed
-        elif action == 2:  # accelerate
+        elif action == 2:  # accelerate only
             self.velocity_x += math.cos(math.radians(self.angle)) * self.acceleration
             self.velocity_y -= math.sin(math.radians(self.angle)) * self.acceleration
+        elif action == 3:  # steer left + accelerate
+            self.angle += self.turn_speed
+            self.velocity_x += math.cos(math.radians(self.angle)) * self.acceleration
+            self.velocity_y -= math.sin(math.radians(self.angle)) * self.acceleration
+        elif action == 4:  # steer right + accelerate
+            self.angle -= self.turn_speed
+            self.velocity_x += math.cos(math.radians(self.angle)) * self.acceleration
+            self.velocity_y -= math.sin(math.radians(self.angle)) * self.acceleration
+        # action == 5: do nothing
         
         # Speed limiting + friction
         speed = math.sqrt(self.velocity_x**2 + self.velocity_y**2)
@@ -167,12 +178,18 @@ class Racer(gym.Env):
         next_y = self.y + self.velocity_y
         corners = self.get_rotated_hitbox(next_x, next_y, self.car_w, self.car_h, self.angle)
 
-        reward = 0.02  # small positive reward for surviving
-        reward += 0.03 * speed  # for speed
+        reward = 0.0  # start with zero base reward
+        
+        # Strong reward for speed (encourage movement)
+        reward += 0.1 * speed
+        
+        # Small penalty for going too slow (discourage staying still)
+        if speed < 0.5:
+            reward -= 0.1
 
         # Collision check
         if self.check_collision(corners):
-            reward = -10.0
+            reward = -1.0  # reduced penalty so agent explores more
             terminated = True
             self.velocity_x = self.velocity_y = 0
         else:
@@ -190,9 +207,9 @@ class Racer(gym.Env):
         result = self.check_checkpoint_pixel()
 
         if result == "checkpoint":
-            reward += 5.0      # strong reward for progress
+            reward += 10.0      # strong reward for progress
         elif result == "lap":
-            reward += 20.0     # huge reward for completing the track
+            reward += 50.0      # huge reward for completing the track
 
         return obs, reward, terminated, truncated, info
 
