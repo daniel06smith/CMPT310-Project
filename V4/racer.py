@@ -29,10 +29,12 @@ class Racer(gym.Env):
         ]
         self.current_checkpoint = 0
 
+        # Initialize display (needed even for headless to use .convert())
         if render_mode == "human":
             self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
         else:
-            self.screen = pygame.Surface((self.WIDTH, self.HEIGHT))
+            # Create a dummy display for headless mode
+            self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
 
         self.clock = pygame.time.Clock()
 
@@ -197,6 +199,13 @@ class Racer(gym.Env):
     def render(self):
         if self.render_mode != "human":
             return
+        
+        # Handle events first
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+        
         self.screen.blit(self.track, (0, 0))
         # Draw lidar
         angles = [-60, -30, 0, 30, 60]
@@ -211,9 +220,6 @@ class Racer(gym.Env):
         self.screen.blit(rotated_car, rect.topleft)
         pygame.display.flip()
         self.clock.tick(self.metadata["render_fps"])
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
 
     def close(self):
         pygame.quit()

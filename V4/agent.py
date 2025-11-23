@@ -78,7 +78,9 @@ class Agent():
                 file.write(log_message + '\n')
 
         # Create instance of the environment.
-        env = Racer(render_mode="human", track_num=TRACK_NUM)
+        # Create instance of the environment with appropriate render mode
+        render_mode = "human" if render else None
+        env = Racer(render_mode=render_mode, track_num=TRACK_NUM)
 
         # Number of possible actions
         num_actions = env.action_space.n
