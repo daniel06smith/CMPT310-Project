@@ -31,7 +31,7 @@ matplotlib.use('Agg')
 
 device = 'cpu' # force cpu
 
-TRACK_NUM = 2 # Track numbers [1, 2, 3, 4 ....]
+TRACK_NUM = 4 # Track numbers [1, 2, 3, 4 ....]
 
 # Deep Q-Learning Agent
 class Agent():

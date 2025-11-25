@@ -10,7 +10,7 @@ pygame.display.set_caption("Car Track with Lidar Sensors")
 clock = pygame.time.Clock()
 
 # --- Load assets ---
-track = pygame.image.load("track3.png").convert()
+track = pygame.image.load("track5.png").convert()
 track = pygame.transform.scale(track, (WIDTH, HEIGHT))
 
 car_image = pygame.image.load("car.png").convert_alpha()
