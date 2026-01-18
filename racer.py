@@ -22,12 +22,22 @@ class Racer(gym.Env):
         self.track_num = track_num
 
         self.checkpoint_colors = [
-            # real colors
-            (234, 51, 247),     # CP0: magenta
-            (117, 251, 253),    # CP1: cyan
-            (255, 255, 84),     # CP2: yellow
-            (240, 156, 73),     # CP3: orange
-            (117, 251, 76),     # CP4: green
+            # # real colors
+            # (234, 51, 247),     # CP0: magenta
+            # (117, 251, 253),    # CP1: cyan
+            # (255, 255, 84),     # CP2: yellow
+            # (240, 156, 73),     # CP3: orange
+            # (117, 251, 76),     # CP4: green
+            # colors used with eye drop tool
+            (255, 0, 255),     # CP0: magenta
+            (0, 255, 255),     # CP1: cyan
+            (255, 255, 0),     # CP2: yellow
+            (255, 128, 0),     # CP3: orange
+            (0, 255, 0),       # CP4: green
+            (0, 0, 255),       # CP5: blue
+            (255, 0, 0),       # CP6: red
+            (127, 0, 255),     # CP7: purple
+
         ]
         self.current_checkpoint = 0
 
@@ -79,7 +89,8 @@ class Racer(gym.Env):
         for (cx, cy) in corners:
             if 0 <= cx < self.WIDTH and 0 <= cy < self.HEIGHT:
                 color = self.track.get_at((int(cx), int(cy)))[:3]
-                if color <= (100, 100, 100):
+                # Check if it's a dark color (wall) - all RGB values must be low
+                if color[0] <= 100 and color[1] <= 100 and color[2] <= 100:
                     return True
         return False
 
@@ -92,7 +103,7 @@ class Racer(gym.Env):
             if not (0 <= lx < self.WIDTH and 0 <= ly < self.HEIGHT):
                 return self.max_lidar
             color = self.track.get_at((lx, ly))[:3]
-            if color <= (100, 100, 100):
+            if color[0] <= 100 and color[1] <= 100 and color[2] <= 100:
                 return dist
         return self.max_lidar
 
